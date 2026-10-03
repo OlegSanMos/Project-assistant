@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import requests
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 
@@ -115,6 +116,30 @@ class CachedEmbeddings(Embeddings):
 
     def embed_query(self, text: str) -> list[float]:
         return self.inner.embed_query(text)
+
+
+def check_setup(settings: Settings) -> list[str]:
+    """Проверяет настройки моделей до запуска и возвращает список проблем с подсказками."""
+    problems = []
+    if settings.provider == "openai" and not settings.openai_api_key:
+        problems.append("Не задан OPENAI_API_KEY в файле .env (или укажите LLM_PROVIDER=ollama).")
+    needed = set()
+    if settings.provider == "ollama":
+        needed |= {settings.chat_model, settings.vision_model}
+    if settings.embeddings_provider == "ollama":
+        needed.add(settings.embedding_model)
+    if needed:
+        try:
+            reply = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=3).json()
+            installed = {model["name"] for model in reply.get("models", [])}
+        except Exception:
+            return problems + [
+                f"Ollama не отвечает по адресу {settings.ollama_base_url}: запустите Ollama."
+            ]
+        for model in sorted(needed):
+            if (model if ":" in model else f"{model}:latest") not in installed:
+                problems.append(f"Модель {model} не загружена: выполните ollama pull {model}")
+    return problems
 
 
 def _slug(name: str) -> str:

@@ -7,6 +7,7 @@ import argparse
 
 from labmentor.assistant import LabAssistant
 from labmentor.config import Settings
+from labmentor.llm import check_setup
 from labmentor.ui import build_ui, launch_options
 
 
@@ -20,6 +21,8 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = Settings.from_env()
+    for problem in check_setup(settings):
+        print(f"Внимание: {problem}")
     assistant = LabAssistant(settings)
     print(f"Провайдер LLM: {settings.provider}, модель: {settings.chat_model}")
     print(f"База знаний: {assistant.kb_status}")
