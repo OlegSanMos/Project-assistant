@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Настройки с ключами
 .env
