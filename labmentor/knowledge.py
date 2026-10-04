@@ -153,11 +153,12 @@ class KnowledgeBase:
         if not self.chunks:
             return []
         rankings: list[list[int]] = []
+        depth = max(3 * k, 10)  # глубина списков рангов для объединения
         scores = self._bm25.get_scores(tokenize(query))
         bm25_rank = [
             i for i in sorted(range(len(scores)), key=lambda i: -scores[i]) if scores[i] > 0
         ]
-        rankings.append(bm25_rank[: k * 3])
+        rankings.append(bm25_rank[:depth])
         numbers = set(_lab_number_re.findall(query))
         if numbers:  # фрагменты работы с указанным номером поднимаются выше
             wanted = {
@@ -168,7 +169,7 @@ class KnowledgeBase:
             rankings.append([i for i in bm25_rank if i in wanted] + sorted(wanted - set(bm25_rank)))
         if self.vector_store is not None:
             try:
-                found = self.vector_store.similarity_search(query, k=k * 3)
+                found = self.vector_store.similarity_search(query, k=depth)
                 rankings.append([int(doc.id) for doc in found])
             except Exception as exc:
                 self.vector_error = str(exc)
